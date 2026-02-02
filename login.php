@@ -1,22 +1,32 @@
 <?php
-
+session_start();
 include 'koneksi.php';
 
-if($_SERVER['REQUEST_METHOD'] === 'POST'){
+$error = '';
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $username = $_POST['username'];
     $password = $_POST['password'];
     $role = $_POST['role'];
-    $hashed = password_hash($password, PASSWORD_BCRYPT);
 
-    $sql = "SELECT * FROM users WHERE username = ? AND password = ?";
-    $result = $koneksi->execute_query($sql, [$username,$hashed.$role]);
-    $cek = $result->fetch_array();
+    $sql = "SELECT * FROM users WHERE username = ?";
+    $result = $koneksi->execute_query($sql, [$username]);
+    $user = $result->fetch_assoc();
 
+    if ($user) {
+        if (password_verify($password, $user['password'])) {
+            $_SESSION['username'] = $user['username'];
+            $_SESSION['role'] = $user['role'];
+
+            header("Location: dashboard_anggota.php");
+            exit;
+        } else {
+            $error = "Password salah!";
+        }
+    } else {
+        $error = "Username tidak ditemukan!";
+    }
 }
-
-if($cek)
-    session_start();
-
 ?>
 
 <!DOCTYPE html>
@@ -37,8 +47,17 @@ if($cek)
         <label for="password">Password</label>
         <input style="margin-left: 4px;" type="password" name="password" id="password">
     </div>
+    <select name="role">
+        <option value="siswa">siswa</option>
+        <option value="admin">admin</option>
+    </select>
     <p>still don't have an account? <a style="text-decoration: none;" href="register.php">Register</a> now</p>
-    <button><a href="buku/index.php" style="text-decoration: none; color: black;">Login</a></button>
+    <button type="submit" style="text-decoration: none; color: black;">Login</button>
+    <?php 
+    if ($error) {
+        echo '<p style="color: red;">' . $error . '</p>';
+    }
+    ?>
     </form>
 </body>
 </html>
